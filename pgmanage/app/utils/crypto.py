@@ -1,10 +1,6 @@
-import os
-import base64
-import hashlib
-
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from django.utils.crypto import pbkdf2
-
+import os, base64, hashlib, random
+# Authenticated symmetric encryption tool
+from cryptography.fernet import Fernet
 
 def encrypt(plaintext, key):
     iv = os.urandom(16)
@@ -24,12 +20,21 @@ def decrypt(encrypted_text, key):
 
     return conn_pass.decode()
 
+# Password hashing constants
+SALT_LENGTH = 16
+HASH_ALG = 'sha256'
+PBKDF2_ITERS = 15000
 
-def make_hash(plaintext, current_user):
-    iterations = 150000
-    digest = hashlib.sha256
-    salt = f'{current_user.date_joined}{current_user.id}'
+def make_hash(plaintext):
+    # Generate random salt [https://cryptography.io/en/latest/random-numbers/]
+    salt = os.urandom(SALT_LENGTH)
+    # Create authenticated hash
+    passhash = hashlib.pbkdf2_hmac(HASH_ALG,
+                                   bytes(plaintext, encoding='utf-8'),
+                                   salt,
+                                   PBKDF2_ITERS)
+    # Return base64-encoded result as a string
+    return base64.b64encode(passhash).decode()
 
-    hash = pbkdf2(plaintext, salt, iterations, digest=digest)
 
-    return hash
+                                   
